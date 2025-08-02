@@ -1,10 +1,11 @@
-# pyright: reportMissingTypeArgument=false, reportUnknownParameterType=false, reportUnknownMemberType=false
+# pyright: reportMissingTypeArgument=false, reportUnknownParameterType=false, reportUnknownMemberType=false, reportArgumentType=false
 
 from abc import ABC, abstractmethod
 
-from pygame import Rect
-from pygame.sprite import RenderUpdates
+from pygame.sprite import OrderedUpdates
 from pygame.surface import Surface
+
+from game.entity import Entity
 
 
 class Scene(ABC):
@@ -13,14 +14,8 @@ class Scene(ABC):
     def id() -> str:
         pass
 
-    def __init__(self,
-        entities: RenderUpdates, elements: RenderUpdates,
-    ) -> None:
-        self._entities = entities
-        self._elements = elements
+    def __init__(self, entities: list[Entity]) -> None:
+        self._entities = OrderedUpdates(*entities)
 
-    def draw(self, display: Surface) -> list[Rect]:
-        game_list = self._entities.draw(display)
-        ui_list = self._elements.draw(display)
-
-        return game_list + ui_list
+    def draw(self, display: Surface) -> None:
+        self._entities.draw(display)

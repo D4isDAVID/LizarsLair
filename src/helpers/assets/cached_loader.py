@@ -14,14 +14,14 @@ class CachedLoader[T](ABC):
 
     def cache(self, *keys: str) -> None:
         for key in keys:
-            self._cache[key] = self._load(f'{key}.png')
+            self._cache[key] = self._load(key)
 
     def clear_cache(self) -> None:
         self._cache.clear()
 
     def __getitem__(self, key: str) -> T:
         if key not in self._cache:
-            self._logger.info('Asset %s is used despite not being cached', key)
+            self._logger.info('Caching asset %s', key)
             self.cache(key)
 
         return self._cache[key]

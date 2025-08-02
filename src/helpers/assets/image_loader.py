@@ -11,4 +11,4 @@ class ImageLoader(CachedLoader[Surface]):
 
     @staticmethod
     def _load(key: str) -> Surface:
-        return image.load(key)
+        return image.load(f'assets/images/{key}.png')

@@ -10,4 +10,4 @@ class SoundLoader(CachedLoader[Sound]):
 
     @staticmethod
     def _load(key: str) -> Sound:
-        return Sound(key)
+        return Sound(f'assets/sounds/{key}.mp3')

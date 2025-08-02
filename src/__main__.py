@@ -1,9 +1,8 @@
 from common.log import get_logger
 from game import Game
-from game.scene.play import PlayScene
 
 logger = get_logger('main')
-game = Game(PlayScene())
+game = Game()
 
 
 def main() -> None:
