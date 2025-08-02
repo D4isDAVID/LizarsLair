@@ -1,0 +1,31 @@
+line-length = 79
+src = ["scripts", "src", "tests"]
+
+[format]
+line-ending = "lf"
+quote-style = "single"
+skip-magic-trailing-comma = true
+
+[lint]
+select = ["ALL"]
+ignore = ["CPY", "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107"]
+preview = true
+
+[lint.per-file-ignores]
+"*_test.py" = ["S101"]
+
+[lint.flake8-quotes]
+inline-quotes = "single"
+
+[lint.flake8-type-checking]
+strict = true
+
+[lint.isort]
+combine-as-imports = true
+
+[lint.pycodestyle]
+max-doc-length = 72
+max-line-length = 79
+
+[lint.pydocstyle]
+convention = "pep257"

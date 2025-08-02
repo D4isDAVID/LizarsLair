@@ -1,0 +1,19 @@
+# Output
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+build/
+dist/
+*.spec
+
+# Environment
+.venv/
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# OS
+.DS_Store

@@ -1,0 +1,14 @@
+{
+  "editor.defaultFormatter": "charliermarsh.ruff",
+  "ruff.enable": true,
+  "ruff.lint.enable": true,
+  "ruff.fixAll": true,
+  "ruff.organizeImports": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.ruff": "always",
+    "source.organizeImports.ruff": "always"
+  },
+  "python.analysis.typeCheckingMode": "strict",
+  "python.analysis.indexing": true,
+  "python.analysis.autoImportCompletions": true
+}

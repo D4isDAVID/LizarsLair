@@ -1,0 +1,74 @@
+name: Build
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - type: Windows
+            os: windows-latest
+          - type: Linux
+            os: ubuntu-latest
+          - type: MacOS
+            os: macos-latest
+
+    name: Build (${{ matrix.type }})
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Build
+        run: uv run pyinstaller ./src/__main__.py --noconfirm --name LizarsLair --add-data assets:assets
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: LizarsLair-${{ matrix.type }}
+          path: ./dist/LizarsLair/
+
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download archives
+        uses: actions/download-artifact@v4
+
+      - name: Archive
+        shell: bash
+        run: |
+          version="${{ github.ref_name }}"
+
+          zip -r "LizarsLair-$version-Windows.zip" "LizarsLair-Windows"
+          tar -czvf "LizarsLair-$version-Linux.tar.gz" "LizarsLair-Linux"
+          tar -czvf "LizarsLair-$version-MacOS.tar.gz" "LizarsLair-MacOS"
+
+      - name: Draft release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          files: |
+            ./*.zip
+            ./*.tar.gz
