@@ -1,4 +1,3 @@
-
 import pygame
 
 from common.log import get_logger
@@ -19,8 +18,8 @@ class Game:
     def load_scene(self, scene: Scene) -> None:
         self._logger.info(
             'Moving from scene %s to %s',
-            self._scene.id(),
-            scene.id(),
+            self._scene.__class__.__name__,
+            scene.__class__.__name__,
         )
 
         del self._scene
@@ -40,7 +39,8 @@ class Game:
         self._clock = pygame.time.Clock()
         self._scene = PlayScene(self._helpers, self._surface.get_rect())
 
-        self._logger.info('Running game with scene %s', self._scene.id())
+        scene_name = self._scene.__class__.__name__
+        self._logger.info('Running game with scene %s', scene_name)
 
         self._running = True
         while self._running:

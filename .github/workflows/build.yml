@@ -32,7 +32,7 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Build
-        run: uv run pyinstaller ./src/__main__.py --noconfirm --name LizarsLair --add-data assets:assets
+        run: uv run pyinstaller ./src/__main__.py --windowed --name LizarsLair --add-data assets:assets --icon=icon.ico
 
       - name: Upload executable
         uses: actions/upload-artifact@v4

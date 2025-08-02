@@ -15,10 +15,6 @@ if TYPE_CHECKING:
 
 
 class PlayScene(Scene):
-    @staticmethod
-    def id() -> str:
-        return 'play'
-
     def __init__(self, helpers: Helpers, surface_rect: Rect) -> None:
         self._music = helpers.assets.sounds[MusicSound.FIGHT.value]
         helpers.event.keyboard.keydown.on(self._keydown)

@@ -2,6 +2,7 @@ from pygame.mixer import Sound
 
 from common.log import get_logger
 from helpers.assets.cached_loader import CachedLoader
+from helpers.utils import get_assets_path
 
 
 class SoundLoader(CachedLoader[Sound]):
@@ -10,4 +11,4 @@ class SoundLoader(CachedLoader[Sound]):
 
     @staticmethod
     def _load(key: str) -> Sound:
-        return Sound(f'assets/sounds/{key}.mp3')
+        return Sound(f'{get_assets_path()}/sounds/{key}.mp3')

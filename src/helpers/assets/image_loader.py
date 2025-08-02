@@ -3,6 +3,7 @@ from pygame.surface import Surface
 
 from common.log import get_logger
 from helpers.assets.cached_loader import CachedLoader
+from helpers.utils import get_assets_path
 
 
 class ImageLoader(CachedLoader[Surface]):
@@ -11,4 +12,4 @@ class ImageLoader(CachedLoader[Surface]):
 
     @staticmethod
     def _load(key: str) -> Surface:
-        return image.load(f'assets/images/{key}.png')
+        return image.load(f'{get_assets_path()}/images/{key}.png')
