@@ -1,3 +1,4 @@
+import operator
 from random import randint
 from typing import TYPE_CHECKING
 
@@ -43,7 +44,7 @@ class PlayScene(Scene):
         self._head = HeadEntity(helpers)
         self._corners[self._head_pos] = self._head
         self._turn = True
-        self._spawn_interval = 5
+        self._spawn_interval = 7
         self._spawn = self._spawn_interval
 
         entities: list[Entity] = [
@@ -93,8 +94,11 @@ class PlayScene(Scene):
             corners = self._find_loop(None, self._head_pos, [])
             for pos in corners:
                 self._corners[pos] = None
-                self._trails[pos] = None
+                self._trails[PlayScene._bind_pos(pos, self._trails.size)] = (
+                    None
+                )
                 self._side_trails[pos] = None
+            self._kill_enemies_between_corners(corners)
         self._corners[self._head_pos] = self._head
 
         if self._turn:
@@ -112,23 +116,49 @@ class PlayScene(Scene):
                 if entity is None:
                     continue
 
-                dir = randint(1, 4)
+                dir = randint(0, 3)
+                damage = 5
 
-                if dir == 1:
-                    new_pos = (pos[0], pos[1] - 1)
-                elif dir == 2:
-                    new_pos = (pos[0] - 1, pos[1])
-                elif dir == 3:
-                    new_pos = (pos[0], pos[1] + 1)
-                else:
-                    new_pos = (pos[0] + 1, pos[1])
+                positions = [
+                    (pos[0], pos[1] - 1),
+                    (pos[0] - 1, pos[1]),
+                    (pos[0], pos[1] + 1),
+                    (pos[0] + 1, pos[1]),
+                ]
 
-                new_pos = PlayScene._bind_pos(new_pos, self._mobs.size)
+                new_pos = PlayScene._bind_pos(positions[dir], self._mobs.size)
+
+                for hit_pos in positions:
+                    PlayScene._hit(
+                        self._trails,
+                        PlayScene._bind_pos(hit_pos, self._trails.size),
+                        damage,
+                    )
+                    PlayScene._hit(
+                        self._side_trails,
+                        PlayScene._bind_pos(hit_pos, self._side_trails.size),
+                        damage,
+                    )
+                    PlayScene._hit(self._corners, hit_pos, damage)
+
                 if self._mobs[new_pos] is not None:
                     continue
 
                 self._mobs[pos] = None
                 self._mobs[new_pos] = entity
+
+    def _kill_enemies_between_corners(
+        self, corners: list[tuple[int, int]]
+    ) -> None:
+        while len(corners) > 1:
+            x = corners[0][0]
+            column = list(filter(lambda p: p[0] == x, corners))
+            top_y = min(column, key=operator.itemgetter(1))[1]
+            bottom_y = max(column, key=operator.itemgetter(1))[1]
+            for pos in column:
+                corners.remove(pos)
+            for y in range(top_y, bottom_y):
+                self._mobs[x, y] = None
 
     def _find_loop(
         self,
@@ -173,15 +203,23 @@ class PlayScene(Scene):
 
     @staticmethod
     def _hit_all[T: HpEntity | None](entities: Grid[T], hp: int) -> None:
-        for index, entity in list(entities):
-            if entity is None or isinstance(entity, HeadEntity):
-                continue
+        for pos, _entity in list(entities):
+            PlayScene._hit(entities, pos, hp)
 
-            entity.hit(hp)
-            if entity.hp == 0:
-                entities[index] = None
-            else:
-                entities[index] = entity
+    @staticmethod
+    def _hit[T: HpEntity | None](
+        entities: Grid[T], pos: tuple[int, int], hp: int
+    ) -> None:
+        entity = entities[pos]
+
+        if entity is None or isinstance(entity, HeadEntity):
+            return
+
+        entity.hit(hp)
+        if entity.hp == 0:
+            entities[pos] = None
+        else:
+            entities[pos] = entity
 
     def _keydown(self, key: int, _mod: int) -> None:
         if key == K_w:
