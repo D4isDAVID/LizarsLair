@@ -66,7 +66,9 @@ class PlayScene(Scene):
         super().draw(display)
 
         score_text = self.FONT.render(
-            f'Score: {self._score}', True, (255, 255, 255),
+            f'Score: {self._score}',
+            True,  # noqa: FBT003
+            (255, 255, 255),
         )
         display.blit(score_text, (0, 0))
 
@@ -113,51 +115,58 @@ class PlayScene(Scene):
             self._kill_enemies_between_corners(corners)
         self._corners[self._head_pos] = self._head
 
-        if self._turn:
-            self._spawn -= 1
-            if self._spawn == 0:
-                self._spawn = self._spawn_interval
+        if not self._turn:
+            return
 
-                pos = (
-                    randint(0, self._mobs.size[0] - 1),
-                    randint(0, self._mobs.size[1] - 1),
+        self._spawn -= 1
+        if self._spawn == 0:
+            self._spawn = self._spawn_interval
+
+            pos = (
+                randint(0, self._mobs.size[0] - 1),  # noqa: S311
+                randint(0, self._mobs.size[1] - 1),  # noqa: S311
+            )
+            self._mobs[pos] = SaltEntity(self._helpers)
+
+        self._move_mobs()
+
+    def _move_mobs(self) -> None:
+        for pos, entity in list(self._mobs):
+            if entity is None:
+                continue
+
+            damage = 5
+
+            positions = [
+                (pos[0], pos[1] - 1),
+                (pos[0] - 1, pos[1]),
+                (pos[0], pos[1] + 1),
+                (pos[0] + 1, pos[1]),
+            ]
+
+            new_pos = PlayScene._bind_pos(
+                positions[randint(0, 3)],  # noqa: S311
+                self._mobs.size,
+            )
+
+            for hit_pos in positions:
+                PlayScene._hit(
+                    self._trails,
+                    PlayScene._bind_pos(hit_pos, self._trails.size),
+                    damage,
                 )
-                self._mobs[pos] = SaltEntity(self._helpers)
+                PlayScene._hit(
+                    self._side_trails,
+                    PlayScene._bind_pos(hit_pos, self._side_trails.size),
+                    damage,
+                )
+                PlayScene._hit(self._corners, hit_pos, damage)
 
-            for pos, entity in list(self._mobs):
-                if entity is None:
-                    continue
+            if self._mobs[new_pos] is not None:
+                continue
 
-                dir = randint(0, 3)
-                damage = 5
-
-                positions = [
-                    (pos[0], pos[1] - 1),
-                    (pos[0] - 1, pos[1]),
-                    (pos[0], pos[1] + 1),
-                    (pos[0] + 1, pos[1]),
-                ]
-
-                new_pos = PlayScene._bind_pos(positions[dir], self._mobs.size)
-
-                for hit_pos in positions:
-                    PlayScene._hit(
-                        self._trails,
-                        PlayScene._bind_pos(hit_pos, self._trails.size),
-                        damage,
-                    )
-                    PlayScene._hit(
-                        self._side_trails,
-                        PlayScene._bind_pos(hit_pos, self._side_trails.size),
-                        damage,
-                    )
-                    PlayScene._hit(self._corners, hit_pos, damage)
-
-                if self._mobs[new_pos] is not None:
-                    continue
-
-                self._mobs[pos] = None
-                self._mobs[new_pos] = entity
+            self._mobs[pos] = None
+            self._mobs[new_pos] = entity
 
     def _kill_enemies_between_corners(
         self, corners: list[tuple[int, int]],
