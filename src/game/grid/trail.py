@@ -1,5 +1,6 @@
-from game.entity.player.trail import TrailEntity
-from game.grid.entity import EntityGrid
+from game.entity import TrailEntity
+
+from .entity import EntityGrid
 
 
 class TrailGrid(EntityGrid[TrailEntity | None]):

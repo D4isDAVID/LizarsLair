@@ -53,6 +53,7 @@ class Game:
     def _run(self) -> None:
         self._clock.tick(TARGET_FPS)
 
+        self._surface.fill((0, 0, 0))
         self._scene.draw(self._surface)
         surface = pygame.transform.scale(self._surface, self._surface_res)
         self._display.blit(

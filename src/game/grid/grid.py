@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 
 
 class Grid[T]:
@@ -8,9 +8,11 @@ class Grid[T]:
         default: Callable[[tuple[int, int]], T],
     ) -> None:
         self._default = default
-        self._grid = [[
-            self._default((x, y)) for y in range(size[1])
-        ] for x in range(size[0])]
+        self._grid = [
+            self._default((x, y))
+            for y in range(size[1])
+            for x in range(size[0])
+        ]
         self._size = size
 
     @property
@@ -18,7 +20,7 @@ class Grid[T]:
         return self._size
 
     def __getitem__(self, pos: tuple[int, int]) -> T:
-        return self._grid[pos[0]][pos[1]]
+        return self._grid[pos[0] + (pos[1] * self._size[0])]
 
     def __setitem__(
         self,
@@ -28,4 +30,10 @@ class Grid[T]:
         if value is None:
             value = self._default(pos)
 
-        self._grid[pos[0]][pos[1]] = value
+        self._grid[pos[0] + (pos[1] * self._size[0])] = value
+
+    def __iter__(self) -> Generator[tuple[tuple[int, int], T]]:
+        yield from (
+            ((x[0] % self._size[0], x[0] // self._size[0]), x[1])
+            for x in enumerate(self._grid)
+        )

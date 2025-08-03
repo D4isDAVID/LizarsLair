@@ -28,3 +28,9 @@ class PlayerEntity(HpEntity):
             self.image = self._normal
         else:
             self.image = self._hydrated
+
+    @HpEntity.hp.setter
+    def hp(self, hp: int) -> None:
+        HpEntity.hp.fset(self, hp)  # pyright: ignore[reportOptionalCall]
+
+        self._update_image()

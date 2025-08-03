@@ -3,10 +3,12 @@ from typing import TYPE_CHECKING
 from pygame import K_a, K_d, K_s, K_w, Rect
 
 from game.entity import HeadEntity
+from game.entity.hp import HpEntity
 from game.entity.player.corner import CornerEntity
 from game.entity.player.side_trail import SideTrailEntity
 from game.entity.player.trail import TrailEntity
 from game.grid import CornerGrid, SideTrailGrid, TileGrid, TrailGrid
+from game.grid.grid import Grid
 from helpers import Helpers
 from helpers.assets.enums import MusicSound
 from helpers.utils import center_rect
@@ -50,24 +52,57 @@ class PlayScene(Scene):
         self._music.stop()
 
     def _move_head(self, x: int, y: int) -> None:
-        new_x = min(max(self._head_pos[0] + x, 0), self._corners.size[0] - 1)
-        new_y = min(max(self._head_pos[1] + y, 0), self._corners.size[1] - 1)
+        new_x = self._head_pos[0] + x
+        new_y = self._head_pos[1] + y
+
+        if (
+            new_x < 0
+            or new_x > self._corners.size[0] - 1
+            or new_y < 0
+            or new_y > self._corners.size[1] - 1
+        ):
+            return
+
+        PlayScene._hit_all(self._corners, 1)
+        PlayScene._hit_all(self._trails, 1)
+        PlayScene._hit_all(self._side_trails, 1)
 
         prev_pos = self._head_pos
         new_pos = (new_x, new_y)
 
-        trail_pos = (prev_pos[0] + min(x, 0), prev_pos[1] + min(y, 0))
         self._head_pos = new_pos
 
         self._corners[prev_pos] = CornerEntity(self._helpers)
-        if x != 0:
-            self._side_trails[trail_pos] = SideTrailEntity(self._helpers)
-        else:
+        trail_x = prev_pos[0] + min(x, 0)
+        trail_y = prev_pos[1] + min(y, 0)
+        if x == 0:
+            trail_pos = (
+                min(max(trail_x, 0), self._trails.size[0] - 1),
+                min(max(trail_y, 0), self._trails.size[1] - 1),
+            )
             self._trails[trail_pos] = TrailEntity(self._helpers)
+        else:
+            trail_pos = (
+                min(max(trail_x, 0), self._side_trails.size[0] - 1),
+                min(max(trail_y, 0), self._side_trails.size[1] - 1),
+            )
+            self._side_trails[trail_pos] = SideTrailEntity(self._helpers)
 
         self._head.rect.x = self._head.rect.width * self._head_pos[0]
         self._head.rect.y = self._head.rect.height * self._head_pos[1]
         self._corners[self._head_pos] = self._head
+
+    @staticmethod
+    def _hit_all[T: HpEntity | None](entities: Grid[T], hp: int) -> None:
+        for index, entity in list(entities):
+            if entity is None or isinstance(entity, HeadEntity):
+                continue
+
+            entity.hit(hp)
+            if entity.hp == 0:
+                entities[index] = None
+            else:
+                entities[index] = entity
 
     def _keydown(self, key: int, _mod: int) -> None:
         if key == K_w:

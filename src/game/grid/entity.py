@@ -28,10 +28,9 @@ class EntityGrid[T: Entity | None](Grid[T], Entity):
         )
         Entity.__init__(self, surface)
 
-        for column in self._grid:
-            for entity in column:
-                if entity is not None:
-                    surface.blit(entity.image, entity.rect)
+        for entity in self._grid:
+            if entity is not None:
+                surface.blit(entity.image, entity.rect)
 
     def __setitem__(
         self,

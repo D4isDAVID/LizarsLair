@@ -10,11 +10,16 @@ class HpEntity(Entity):
         self._max_hp = hp
         self._hp = hp
 
-    def hit(self, hp: int) -> None:
-        self._hp -= hp
+    @property
+    def hp(self) -> int:
+        return self._hp
 
-        if self._hp <= 0:
-            self.kill()
+    @hp.setter
+    def hp(self, hp: int) -> None:
+        self._hp = max(min(hp, self._max_hp), 0)
+
+    def hit(self, hp: int) -> None:
+        self.hp = self._hp - hp
 
     def heal(self, hp: int) -> None:
-        self._hp = max(self._hp + hp, self._max_hp)
+        self.hp = self._hp + hp
