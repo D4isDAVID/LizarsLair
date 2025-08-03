@@ -15,8 +15,8 @@ jobs:
             os: windows-latest
           - type: Linux
             os: ubuntu-latest
-          - type: MacOS
-            os: macos-latest
+          # - type: MacOS
+          #   os: macos-latest
 
     name: Build (${{ matrix.type }})
     runs-on: ${{ matrix.os }}
@@ -61,7 +61,7 @@ jobs:
 
           zip -r "LizarsLair-$version-Windows.zip" "LizarsLair-Windows"
           tar -czvf "LizarsLair-$version-Linux.tar.gz" "LizarsLair-Linux"
-          tar -czvf "LizarsLair-$version-MacOS.tar.gz" "LizarsLair-MacOS"
+          # tar -czvf "LizarsLair-$version-MacOS.tar.gz" "LizarsLair-MacOS"
 
       - name: Draft release
         uses: softprops/action-gh-release@v2
