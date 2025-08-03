@@ -2,7 +2,8 @@ import operator
 from random import randint
 from typing import TYPE_CHECKING
 
-from pygame import K_a, K_d, K_s, K_w, Rect
+from pygame import K_a, K_d, K_s, K_w, Rect, Surface
+from pygame.font import SysFont
 
 from game.entity import HeadEntity
 from game.entity.hp import HpEntity
@@ -28,6 +29,7 @@ class PlayScene(Scene):
         self._music = helpers.assets.sounds[MusicSound.FIGHT.value]
         self._helpers = helpers
         helpers.event.keyboard.keydown.on(self._keydown)
+        self.FONT = SysFont('Arial', 25)
 
         self._tiles = TileGrid(helpers)
         center_rect(self._tiles.rect, surface_rect)
@@ -47,6 +49,8 @@ class PlayScene(Scene):
         self._spawn_interval = 7
         self._spawn = self._spawn_interval
 
+        self._score = 0
+
         entities: list[Entity] = [
             self._tiles,
             self._trails,
@@ -57,6 +61,14 @@ class PlayScene(Scene):
         super().__init__(entities)
 
         self._music.play(-1)
+
+    def draw(self, display: Surface) -> None:
+        super().draw(display)
+
+        score_text = self.FONT.render(
+            f'Score: {self._score}', True, (255, 255, 255),
+        )
+        display.blit(score_text, (0, 0))
 
     def __del__(self) -> None:
         self._music.stop()
@@ -148,7 +160,7 @@ class PlayScene(Scene):
                 self._mobs[new_pos] = entity
 
     def _kill_enemies_between_corners(
-        self, corners: list[tuple[int, int]]
+        self, corners: list[tuple[int, int]],
     ) -> None:
         while len(corners) > 1:
             x = corners[0][0]
@@ -158,7 +170,9 @@ class PlayScene(Scene):
             for pos in column:
                 corners.remove(pos)
             for y in range(top_y, bottom_y):
-                self._mobs[x, y] = None
+                if self._mobs[x, y] is not None:
+                    self._mobs[x, y] = None
+                    self._score += 1
 
     def _find_loop(
         self,
@@ -194,7 +208,7 @@ class PlayScene(Scene):
 
     @staticmethod
     def _bind_pos(
-        pos: tuple[int, int], bind: tuple[int, int]
+        pos: tuple[int, int], bind: tuple[int, int],
     ) -> tuple[int, int]:
         return (
             min(max(pos[0], 0), bind[0] - 1),
@@ -208,7 +222,7 @@ class PlayScene(Scene):
 
     @staticmethod
     def _hit[T: HpEntity | None](
-        entities: Grid[T], pos: tuple[int, int], hp: int
+        entities: Grid[T], pos: tuple[int, int], hp: int,
     ) -> None:
         entity = entities[pos]
 
