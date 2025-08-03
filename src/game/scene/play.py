@@ -68,29 +68,67 @@ class PlayScene(Scene):
         PlayScene._hit_all(self._side_trails, 1)
 
         prev_pos = self._head_pos
-        new_pos = (new_x, new_y)
-
-        self._head_pos = new_pos
+        self._head_pos = (new_x, new_y)
 
         self._corners[prev_pos] = CornerEntity(self._helpers)
-        trail_x = prev_pos[0] + min(x, 0)
-        trail_y = prev_pos[1] + min(y, 0)
+        trail_pos = (prev_pos[0] + min(x, 0), prev_pos[1] + min(y, 0))
         if x == 0:
-            trail_pos = (
-                min(max(trail_x, 0), self._trails.size[0] - 1),
-                min(max(trail_y, 0), self._trails.size[1] - 1),
-            )
             self._trails[trail_pos] = TrailEntity(self._helpers)
         else:
-            trail_pos = (
-                min(max(trail_x, 0), self._side_trails.size[0] - 1),
-                min(max(trail_y, 0), self._side_trails.size[1] - 1),
-            )
             self._side_trails[trail_pos] = SideTrailEntity(self._helpers)
 
         self._head.rect.x = self._head.rect.width * self._head_pos[0]
         self._head.rect.y = self._head.rect.height * self._head_pos[1]
+        if self._corners[self._head_pos] is not None:
+            corners = self._find_loop(None, self._head_pos, [])
+            for pos in corners:
+                self._corners[pos] = None
+                self._trails[pos] = None
+                self._side_trails[pos] = None
         self._corners[self._head_pos] = self._head
+
+    def _find_loop(
+        self,
+        prev_pos: tuple[int, int] | None,
+        current_pos: tuple[int, int],
+        corners: list[tuple[int, int]],
+    ) -> list[tuple[int, int]]:
+        if prev_pos == current_pos or self._corners[current_pos] is None:
+            return []
+        if current_pos in corners:
+            if current_pos == self._head_pos:
+                return corners
+            return []
+
+        corners.append(current_pos)
+
+        minmax = (
+            (0, self._corners.size[0] - 1),
+            (0, self._corners.size[1] - 1),
+        )
+        positions = [
+            (current_pos[0], current_pos[1] - 1),
+            (current_pos[0] - 1, current_pos[1]),
+            (current_pos[0], current_pos[1] + 1),
+            (current_pos[0] + 1, current_pos[1]),
+        ]
+        search = [
+            self._find_loop(
+                current_pos, PlayScene._bind_pos(pos, minmax), corners.copy()
+            )
+            for pos in filter(lambda pos: pos != prev_pos, positions)
+        ]
+
+        return max(search, key=len)
+
+    @staticmethod
+    def _bind_pos(
+        pos: tuple[int, int], bind: tuple[tuple[int, int], tuple[int, int]]
+    ) -> tuple[int, int]:
+        return (
+            min(max(pos[0], bind[0][0]), bind[0][1]),
+            min(max(pos[1], bind[1][0]), bind[1][1]),
+        )
 
     @staticmethod
     def _hit_all[T: HpEntity | None](entities: Grid[T], hp: int) -> None:
