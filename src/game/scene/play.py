@@ -123,13 +123,12 @@ class PlayScene(Scene):
                 else:
                     new_pos = (pos[0] + 1, pos[1])
 
-                new_pos = PlayScene._bind_pos(new_pos, self._corners.size)
-
+                new_pos = PlayScene._bind_pos(new_pos, self._mobs.size)
                 if self._mobs[new_pos] is not None:
                     continue
 
-                self._mobs[new_pos] = entity
                 self._mobs[pos] = None
+                self._mobs[new_pos] = entity
 
     def _find_loop(
         self,
@@ -168,8 +167,8 @@ class PlayScene(Scene):
         pos: tuple[int, int], bind: tuple[int, int]
     ) -> tuple[int, int]:
         return (
-            min(max(pos[0], bind[0] - 1), 0),
-            min(max(pos[1], bind[1] - 1), 0),
+            min(max(pos[0], 0), bind[0] - 1),
+            min(max(pos[1], 0), bind[1] - 1),
         )
 
     @staticmethod
