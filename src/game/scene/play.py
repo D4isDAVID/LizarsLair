@@ -1,3 +1,4 @@
+from random import randint
 from typing import TYPE_CHECKING
 
 from pygame import K_a, K_d, K_s, K_w, Rect
@@ -7,8 +8,10 @@ from game.entity.hp import HpEntity
 from game.entity.player.corner import CornerEntity
 from game.entity.player.side_trail import SideTrailEntity
 from game.entity.player.trail import TrailEntity
+from game.entity.salt import SaltEntity
 from game.grid import CornerGrid, SideTrailGrid, TileGrid, TrailGrid
 from game.grid.grid import Grid
+from game.grid.mobs import MobGrid
 from helpers import Helpers
 from helpers.assets.enums import MusicSound
 from helpers.utils import center_rect
@@ -27,6 +30,8 @@ class PlayScene(Scene):
 
         self._tiles = TileGrid(helpers)
         center_rect(self._tiles.rect, surface_rect)
+        self._mobs = MobGrid()
+        center_rect(self._mobs.rect, surface_rect)
         self._trails = TrailGrid()
         center_rect(self._trails.rect, surface_rect)
         self._side_trails = SideTrailGrid()
@@ -37,10 +42,14 @@ class PlayScene(Scene):
         self._head_pos = (5, 5)
         self._head = HeadEntity(helpers)
         self._corners[self._head_pos] = self._head
+        self._turn = True
+        self._spawn_interval = 5
+        self._spawn = self._spawn_interval
 
         entities: list[Entity] = [
             self._tiles,
             self._trails,
+            self._mobs,
             self._side_trails,
             self._corners,
         ]
@@ -63,6 +72,7 @@ class PlayScene(Scene):
         ):
             return
 
+        self._turn = not self._turn
         PlayScene._hit_all(self._corners, 1)
         PlayScene._hit_all(self._trails, 1)
         PlayScene._hit_all(self._side_trails, 1)
@@ -87,6 +97,40 @@ class PlayScene(Scene):
                 self._side_trails[pos] = None
         self._corners[self._head_pos] = self._head
 
+        if self._turn:
+            self._spawn -= 1
+            if self._spawn == 0:
+                self._spawn = self._spawn_interval
+
+                pos = (
+                    randint(0, self._mobs.size[0] - 1),
+                    randint(0, self._mobs.size[1] - 1),
+                )
+                self._mobs[pos] = SaltEntity(self._helpers)
+
+            for pos, entity in list(self._mobs):
+                if entity is None:
+                    continue
+
+                dir = randint(1, 4)
+
+                if dir == 1:
+                    new_pos = (pos[0], pos[1] - 1)
+                elif dir == 2:
+                    new_pos = (pos[0] - 1, pos[1])
+                elif dir == 3:
+                    new_pos = (pos[0], pos[1] + 1)
+                else:
+                    new_pos = (pos[0] + 1, pos[1])
+
+                new_pos = PlayScene._bind_pos(new_pos, self._corners.size)
+
+                if self._mobs[new_pos] is not None:
+                    continue
+
+                self._mobs[new_pos] = entity
+                self._mobs[pos] = None
+
     def _find_loop(
         self,
         prev_pos: tuple[int, int] | None,
@@ -102,10 +146,6 @@ class PlayScene(Scene):
 
         corners.append(current_pos)
 
-        minmax = (
-            (0, self._corners.size[0] - 1),
-            (0, self._corners.size[1] - 1),
-        )
         positions = [
             (current_pos[0], current_pos[1] - 1),
             (current_pos[0] - 1, current_pos[1]),
@@ -114,7 +154,9 @@ class PlayScene(Scene):
         ]
         search = [
             self._find_loop(
-                current_pos, PlayScene._bind_pos(pos, minmax), corners.copy()
+                current_pos,
+                PlayScene._bind_pos(pos, self._corners.size),
+                corners.copy(),
             )
             for pos in filter(lambda pos: pos != prev_pos, positions)
         ]
@@ -123,11 +165,11 @@ class PlayScene(Scene):
 
     @staticmethod
     def _bind_pos(
-        pos: tuple[int, int], bind: tuple[tuple[int, int], tuple[int, int]]
+        pos: tuple[int, int], bind: tuple[int, int]
     ) -> tuple[int, int]:
         return (
-            min(max(pos[0], bind[0][0]), bind[0][1]),
-            min(max(pos[1], bind[1][0]), bind[1][1]),
+            min(max(pos[0], bind[0] - 1), 0),
+            min(max(pos[1], bind[1] - 1), 0),
         )
 
     @staticmethod

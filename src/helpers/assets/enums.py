@@ -6,7 +6,7 @@ class GridImage(Enum):
 
 
 class MobImage(Enum):
-    SALT = 'mob/salt'
+    SALT = 'mobs/salt'
 
 
 class PlayerHeadImage(Enum):
