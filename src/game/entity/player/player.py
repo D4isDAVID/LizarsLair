@@ -1,4 +1,4 @@
-from pygame import Surface
+from pygame import Rect, Surface
 
 from game.entity.hp import HpEntity
 
@@ -19,6 +19,7 @@ class PlayerEntity(HpEntity):
         self._dried = dried
 
         super().__init__(PlayerEntity.MAX_HP, self._hydrated)
+        self.rect = Rect(self._hydrated.get_rect())
 
     def _update_image(self) -> None:
         if self._hp <= PlayerEntity.DRIED_HP:

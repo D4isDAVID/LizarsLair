@@ -1,8 +1,11 @@
 from typing import TYPE_CHECKING
 
-from pygame import Rect
+from pygame import K_a, K_d, K_s, K_w, Rect
 
 from game.entity import HeadEntity
+from game.entity.player.corner import CornerEntity
+from game.entity.player.side_trail import SideTrailEntity
+from game.entity.player.trail import TrailEntity
 from game.grid import CornerGrid, SideTrailGrid, TileGrid, TrailGrid
 from helpers import Helpers
 from helpers.assets.enums import MusicSound
@@ -17,6 +20,7 @@ if TYPE_CHECKING:
 class PlayScene(Scene):
     def __init__(self, helpers: Helpers, surface_rect: Rect) -> None:
         self._music = helpers.assets.sounds[MusicSound.FIGHT.value]
+        self._helpers = helpers
         helpers.event.keyboard.keydown.on(self._keydown)
 
         self._tiles = TileGrid(helpers)
@@ -28,7 +32,9 @@ class PlayScene(Scene):
         self._corners = CornerGrid()
         center_rect(self._corners.rect, surface_rect)
 
-        self._corners[5, 5] = HeadEntity(helpers)
+        self._head_pos = (5, 5)
+        self._head = HeadEntity(helpers)
+        self._corners[self._head_pos] = self._head
 
         entities: list[Entity] = [
             self._tiles,
@@ -38,10 +44,37 @@ class PlayScene(Scene):
         ]
         super().__init__(entities)
 
-        self._music.play()
+        self._music.play(-1)
 
     def __del__(self) -> None:
         self._music.stop()
 
-    def _keydown(self, key: str, _mod: int) -> None:
-        pass
+    def _move_head(self, x: int, y: int) -> None:
+        new_x = min(max(self._head_pos[0] + x, 0), self._corners.size[0] - 1)
+        new_y = min(max(self._head_pos[1] + y, 0), self._corners.size[1] - 1)
+
+        prev_pos = self._head_pos
+        new_pos = (new_x, new_y)
+
+        trail_pos = (prev_pos[0] + min(x, 0), prev_pos[1] + min(y, 0))
+        self._head_pos = new_pos
+
+        self._corners[prev_pos] = CornerEntity(self._helpers)
+        if x != 0:
+            self._side_trails[trail_pos] = SideTrailEntity(self._helpers)
+        else:
+            self._trails[trail_pos] = TrailEntity(self._helpers)
+
+        self._head.rect.x = self._head.rect.width * self._head_pos[0]
+        self._head.rect.y = self._head.rect.height * self._head_pos[1]
+        self._corners[self._head_pos] = self._head
+
+    def _keydown(self, key: int, _mod: int) -> None:
+        if key == K_w:
+            self._move_head(0, -1)
+        elif key == K_a:
+            self._move_head(-1, 0)
+        elif key == K_s:
+            self._move_head(0, 1)
+        elif key == K_d:
+            self._move_head(1, 0)

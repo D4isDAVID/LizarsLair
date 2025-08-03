@@ -11,6 +11,11 @@ class Grid[T]:
         self._grid = [[
             self._default((x, y)) for y in range(size[1])
         ] for x in range(size[0])]
+        self._size = size
+
+    @property
+    def size(self) -> tuple[int, int]:
+        return self._size
 
     def __getitem__(self, pos: tuple[int, int]) -> T:
         return self._grid[pos[0]][pos[1]]

@@ -5,5 +5,5 @@ from .emitter import EventEmitter
 
 @dataclass
 class KeyboardHelper:
-    keydown: EventEmitter[str, int] = field(default_factory=EventEmitter)
-    keyup: EventEmitter[str, int] = field(default_factory=EventEmitter)
+    keydown: EventEmitter[int, int] = field(default_factory=EventEmitter)
+    keyup: EventEmitter[int, int] = field(default_factory=EventEmitter)

@@ -10,7 +10,7 @@ def center_rect(rect: Rect, parent: Rect) -> None:
 
 
 def get_assets_path() -> str:
-    pyinstaller_path = str(sys._MEIPASS) if sys._MEIPASS is not None else None  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType, reportAttributeAccessIssue]  # noqa: SLF001
+    pyinstaller_path = str(sys._MEIPASS) if hasattr(sys, '_MEIPASS') else None  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType, reportAttributeAccessIssue]  # noqa: SLF001
     base_path = pyinstaller_path or f'{__file__}/../../..'
 
     return str((Path(base_path) / 'assets').resolve())
