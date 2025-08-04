@@ -23,12 +23,25 @@ screen, which would essentially render the game OVER.
 ## Developer's Guide
 
 This project uses [uv](https://docs.astral.sh/uv/) for running and building.
+However, it is also possible to run the game directly with Python, explained
+below.
 
 - `uv sync` - Download the required Python version and the dependencies.
 - `uv run src` - Run the game from the source code.
 - `uv run ruff check` - Run the linter and formatter.
 - `uv run pytest` - Run tests.
 - `uv run pyinstaller ./src/__main__.py --windowed --name LizarsLair --add-data assets:assets --icon=icon.ico` - Bundle the source code into an executable.
+
+### Running Directly With Python
+
+This project uses Python 3.13.
+
+- Set up a virtual environment with `python -m venv .venv`
+- Activate the virtual environment with:
+  - `.venv\Scripts\Activate.ps1` on Windows
+  - `source .venv/bin/activate` on Linux/MacOS
+- Install dependencies with `pip install -r requirements.txt`
+- Run the game with `python src`
 
 ## License
 
