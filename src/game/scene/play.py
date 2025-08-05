@@ -2,7 +2,8 @@ import operator
 from random import randint
 from typing import TYPE_CHECKING
 
-from pygame import K_a, K_d, K_s, K_w, Rect, Surface
+import pygame
+from pygame import K_w, K_a, K_s, K_d, K_UP, K_DOWN, K_LEFT, K_RIGHT, K_z, K_q, Rect, Surface
 from pygame.font import SysFont
 
 from game.entity import HeadEntity
@@ -73,18 +74,17 @@ class PlayScene(Scene):
         display.blit(score_text, (0, 0))
 
     def __del__(self) -> None:
-        self._music.stop()
+        try:
+            self._music.stop()
+        except pygame.error:
+            pass
 
     def _move_head(self, x: int, y: int) -> None:
         new_x = self._head_pos[0] + x
         new_y = self._head_pos[1] + y
+        new_pos = (new_x, new_y)
 
-        if (
-            new_x < 0
-            or new_x > self._corners.size[0] - 1
-            or new_y < 0
-            or new_y > self._corners.size[1] - 1
-        ):
+        if not self._corners.in_bounds(new_pos):
             return
 
         self._turn = not self._turn
@@ -93,27 +93,36 @@ class PlayScene(Scene):
         PlayScene._hit_all(self._side_trails, 1)
 
         prev_pos = self._head_pos
-        self._head_pos = (new_x, new_y)
+        self._head_pos = new_pos
 
-        self._corners[prev_pos] = CornerEntity(self._helpers)
+        if self._corners.in_bounds(prev_pos):
+            self._corners[prev_pos] = CornerEntity(self._helpers)
+
         trail_pos = (prev_pos[0] + min(x, 0), prev_pos[1] + min(y, 0))
         if x == 0:
-            self._trails[trail_pos] = TrailEntity(self._helpers)
+            if self._trails.in_bounds(trail_pos):
+                self._trails[trail_pos] = TrailEntity(self._helpers)
         else:
-            self._side_trails[trail_pos] = SideTrailEntity(self._helpers)
+            if self._side_trails.in_bounds(trail_pos):
+                self._side_trails[trail_pos] = SideTrailEntity(self._helpers)
 
         self._head.rect.x = self._head.rect.width * self._head_pos[0]
         self._head.rect.y = self._head.rect.height * self._head_pos[1]
-        if self._corners[self._head_pos] is not None:
+
+        if self._corners.in_bounds(self._head_pos) and self._corners[self._head_pos] is not None:
             corners = self._find_loop(None, self._head_pos, [])
             for pos in corners:
-                self._corners[pos] = None
-                self._trails[PlayScene._bind_pos(pos, self._trails.size)] = (
-                    None
-                )
-                self._side_trails[pos] = None
+                if self._corners.in_bounds(pos):
+                    self._corners[pos] = None
+                bound_trail_pos = PlayScene._bind_pos(pos, self._trails.size)
+                if self._trails.in_bounds(bound_trail_pos):
+                    self._trails[bound_trail_pos] = None
+                if self._side_trails.in_bounds(pos):
+                    self._side_trails[pos] = None
             self._kill_enemies_between_corners(corners)
-        self._corners[self._head_pos] = self._head
+
+        if self._corners.in_bounds(self._head_pos):
+            self._corners[self._head_pos] = self._head
 
         if not self._turn:
             return
@@ -126,7 +135,8 @@ class PlayScene(Scene):
                 randint(0, self._mobs.size[0] - 1),  # noqa: S311
                 randint(0, self._mobs.size[1] - 1),  # noqa: S311
             )
-            self._mobs[pos] = SaltEntity(self._helpers)
+            if self._mobs.in_bounds(pos):
+                self._mobs[pos] = SaltEntity(self._helpers)
 
         self._move_mobs()
 
@@ -150,23 +160,20 @@ class PlayScene(Scene):
             )
 
             for hit_pos in positions:
-                PlayScene._hit(
-                    self._trails,
-                    PlayScene._bind_pos(hit_pos, self._trails.size),
-                    damage,
-                )
-                PlayScene._hit(
-                    self._side_trails,
-                    PlayScene._bind_pos(hit_pos, self._side_trails.size),
-                    damage,
-                )
-                PlayScene._hit(self._corners, hit_pos, damage)
+                bound_hit_pos = PlayScene._bind_pos(hit_pos, self._trails.size)
 
-            if self._mobs[new_pos] is not None:
-                continue
+                if self._trails.in_bounds(bound_hit_pos):
+                    PlayScene._hit(self._trails, bound_hit_pos, damage)
 
-            self._mobs[pos] = None
-            self._mobs[new_pos] = entity
+                if self._side_trails.in_bounds(bound_hit_pos):
+                    PlayScene._hit(self._side_trails, bound_hit_pos, damage)
+
+                if self._corners.in_bounds(hit_pos):
+                    PlayScene._hit(self._corners, hit_pos, damage)
+
+            if self._mobs.in_bounds(new_pos) and self._mobs[new_pos] is None:
+                self._mobs[pos] = None
+                self._mobs[new_pos] = entity
 
     def _kill_enemies_between_corners(
         self, corners: list[tuple[int, int]],
@@ -179,8 +186,9 @@ class PlayScene(Scene):
             for pos in column:
                 corners.remove(pos)
             for y in range(top_y, bottom_y):
-                if self._mobs[x, y] is not None:
-                    self._mobs[x, y] = None
+                pos = (x, y)
+                if self._mobs.in_bounds(pos) and self._mobs[pos] is not None:
+                    self._mobs[pos] = None
                     self._score += 1
 
     def _find_loop(
@@ -245,11 +253,15 @@ class PlayScene(Scene):
             entities[pos] = entity
 
     def _keydown(self, key: int, _mod: int) -> None:
-        if key == K_w:
-            self._move_head(0, -1)
-        elif key == K_a:
-            self._move_head(-1, 0)
-        elif key == K_s:
-            self._move_head(0, 1)
-        elif key == K_d:
-            self._move_head(1, 0)
+        # Movement direction map
+        direction_map = {
+            (K_w, K_z, K_UP): (0, -1),  # Up
+            (K_a, K_q, K_LEFT): (-1, 0),  # Left
+            (K_s, K_DOWN): (0, 1),  # Down
+            (K_d, K_RIGHT): (1, 0),  # Right
+        }
+
+        for keys, direction in direction_map.items():
+            if key in keys:
+                self._move_head(*direction)
+                break
