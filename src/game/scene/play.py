@@ -1,9 +1,23 @@
+import contextlib
 import operator
 from random import randint
 from typing import TYPE_CHECKING
 
 import pygame
-from pygame import K_w, K_a, K_s, K_d, K_UP, K_DOWN, K_LEFT, K_RIGHT, K_z, K_q, Rect, Surface
+from pygame import (
+    K_DOWN,
+    K_LEFT,
+    K_RIGHT,
+    K_UP,
+    K_a,
+    K_d,
+    K_q,
+    K_s,
+    K_w,
+    K_z,
+    Rect,
+    Surface,
+)
 from pygame.font import SysFont
 
 from game.entity import HeadEntity
@@ -74,20 +88,15 @@ class PlayScene(Scene):
         display.blit(score_text, (0, 0))
 
     def __del__(self) -> None:
-        try:
+        with contextlib.suppress(pygame.error):
             self._music.stop()
-        except pygame.error:
-            pass
 
-    def _move_head(self, x: int, y: int) -> None:
-        new_x = self._head_pos[0] + x
-        new_y = self._head_pos[1] + y
-        new_pos = (new_x, new_y)
+    def _move_head(self, pos: tuple[int, int]) -> None:
+        new_pos = (self._head_pos[0] + pos[0], self._head_pos[1] + pos[1])
 
         if not self._corners.in_bounds(new_pos):
             return
 
-        self._turn = not self._turn
         PlayScene._hit_all(self._corners, 1)
         PlayScene._hit_all(self._trails, 1)
         PlayScene._hit_all(self._side_trails, 1)
@@ -95,38 +104,41 @@ class PlayScene(Scene):
         prev_pos = self._head_pos
         self._head_pos = new_pos
 
-        if self._corners.in_bounds(prev_pos):
-            self._corners[prev_pos] = CornerEntity(self._helpers)
+        self._corners[prev_pos] = CornerEntity(self._helpers)
 
-        trail_pos = (prev_pos[0] + min(x, 0), prev_pos[1] + min(y, 0))
-        if x == 0:
+        trail_pos = (
+            prev_pos[0] + min(pos[0], 0),
+            prev_pos[1] + min(pos[1], 0),
+        )
+        if pos[0] == 0:
             if self._trails.in_bounds(trail_pos):
                 self._trails[trail_pos] = TrailEntity(self._helpers)
-        else:
-            if self._side_trails.in_bounds(trail_pos):
-                self._side_trails[trail_pos] = SideTrailEntity(self._helpers)
+        elif self._side_trails.in_bounds(trail_pos):
+            self._side_trails[trail_pos] = SideTrailEntity(self._helpers)
 
         self._head.rect.x = self._head.rect.width * self._head_pos[0]
         self._head.rect.y = self._head.rect.height * self._head_pos[1]
 
-        if self._corners.in_bounds(self._head_pos) and self._corners[self._head_pos] is not None:
+        if (
+            self._corners.in_bounds(self._head_pos)
+            and self._corners[self._head_pos] is not None
+        ):
             corners = self._find_loop(None, self._head_pos, [])
-            for pos in corners:
-                if self._corners.in_bounds(pos):
-                    self._corners[pos] = None
-                bound_trail_pos = PlayScene._bind_pos(pos, self._trails.size)
-                if self._trails.in_bounds(bound_trail_pos):
-                    self._trails[bound_trail_pos] = None
-                if self._side_trails.in_bounds(pos):
-                    self._side_trails[pos] = None
+            for corner_pos in corners:
+                self._corners[corner_pos] = None
+                if self._trails.in_bounds(corner_pos):
+                    self._trails[corner_pos] = None
+                if self._side_trails.in_bounds(corner_pos):
+                    self._side_trails[corner_pos] = None
             self._kill_enemies_between_corners(corners)
 
-        if self._corners.in_bounds(self._head_pos):
-            self._corners[self._head_pos] = self._head
+        self._corners[self._head_pos] = self._head
 
-        if not self._turn:
-            return
+        self._turn = not self._turn
+        if self._turn:
+            self._handle_turn()
 
+    def _handle_turn(self) -> None:
         self._spawn -= 1
         if self._spawn == 0:
             self._spawn = self._spawn_interval
@@ -138,9 +150,6 @@ class PlayScene(Scene):
             if self._mobs.in_bounds(pos):
                 self._mobs[pos] = SaltEntity(self._helpers)
 
-        self._move_mobs()
-
-    def _move_mobs(self) -> None:
         for pos, entity in list(self._mobs):
             if entity is None:
                 continue
@@ -254,7 +263,7 @@ class PlayScene(Scene):
 
     def _keydown(self, key: int, _mod: int) -> None:
         # Movement direction map
-        direction_map = {
+        direction_map: dict[tuple[int, ...], tuple[int, int]] = {
             (K_w, K_z, K_UP): (0, -1),  # Up
             (K_a, K_q, K_LEFT): (-1, 0),  # Left
             (K_s, K_DOWN): (0, 1),  # Down
@@ -263,5 +272,5 @@ class PlayScene(Scene):
 
         for keys, direction in direction_map.items():
             if key in keys:
-                self._move_head(*direction)
+                self._move_head(direction)
                 break
